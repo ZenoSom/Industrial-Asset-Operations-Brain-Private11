@@ -1,0 +1,6 @@
+{
+  "name": "Industrial Asset & Operations Brain",
+  "description": "Unified knowledge intelligence system for heavy-industry plants, enabling document search, entity linkage, and AI-powered operations copilot.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
