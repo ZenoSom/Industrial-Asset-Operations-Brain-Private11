@@ -1,37 +1,59 @@
-## API overview
+# Industrial Knowledge Intelligence — Unified Asset & Operations Brain
 
-| Method | Route | What it does |
-|---|---|---|
-| `POST` | `/api/ingest` | Accepts a document (PDF, spreadsheet, text), runs Gemini extraction, updates the graph |
-| `POST` | `/api/chat` | Answers a question grounded in ingested documents, with structured citations |
-| `GET` | `/api/graph` | Returns the current entity/relationship graph |
-| `GET` | `/api/gaps` | Returns current compliance gaps and flagged anomalies |
+**PS8 — ET AI Hackathon 2026 (The Economic Times)**
+*"AI for Industrial Knowledge Intelligence: Unified Asset & Operations Brain"*
 
-## How this maps to the judging rubric
+Plants generate thousands of scattered documents — equipment specs, permits, maintenance logs, inspection reports — spread across 7–12 disconnected systems in a typical large facility. When something breaks or a technician needs an answer, someone digs through all of it by hand. This project turns that pile of documents into one connected, queryable knowledge graph with a cited AI copilot, so the answer takes seconds instead of an afternoon.
 
-| Criterion | Weight | What we show |
-|---|---|---|
-| Innovation | 25% | Automatic knowledge graph + gap detection, not just a chatbot over PDFs |
-| Business Impact | 25% | Manual search time vs. copilot answer time, measured live in the demo |
-| Technical Excellence | 20% | Real, structured citations on every answer — no mocked or fallback responses |
-| Scalability | 15% | Ingestion pipeline designed to extend past a handful of documents to a full plant archive |
-| User Experience | 15% | Copilot usable on a phone; visual design grounded in the actual subject, not generic AI styling |
+Team **singhsomnath2006** — Somnath Singh (Team Lead) · Meet Tomar
 
-## Known limitations
+---
 
-- The document store is **in-memory** for this prototype and resets on server restart. A production version would move this to persistent storage (e.g. Postgres) as outlined in the architecture.
-- Entity extraction and graph linking are only as good as the documents ingested — tested against a small, hand-built sample set (a pump spec, a maintenance log, a permit, and an inspection report).
+## The problem
 
-## Roadmap
+- **35%** of working hours in asset-intensive industries go to searching for information that already exists somewhere (McKinsey, 2024)
+- **18–22%** of unplanned downtime in Indian heavy industry traces back to fragmented documentation (BIS Research)
+- **25%** of India's experienced industrial engineers retire within the next decade, taking undocumented operational knowledge with them
 
-- Formal ontology (equipment → system → area hierarchy) instead of flat entity tags
-- Real QMS integration for corrective-action workflows
-- Ingestion queue to scale from a handful of documents to a full plant archive
+The data isn't missing. The intelligence layer connecting it is.
 
-## Acknowledgments
+## What it does
 
-Problem context and statistics (McKinsey, BIS Research, NASSCOM-EY) drawn from the ET AI Hackathon 2026 PS8 problem brief.
+| | |
+|---|---|
+| **Ingest & extract** | Drag in PDFs, spreadsheets, and scanned forms. Gemini 3.5 Flash pulls out equipment tags, personnel, regulatory references, and operating limits — no separate OCR or CV pipeline needed, it reads documents and drawings natively. |
+| **Ask in plain English** | The copilot answers questions grounded in the ingested corpus, with a structured citation (source document, page/section) and a confidence score on every response. |
+| **See the connections** | A live D3 knowledge graph links documents, equipment, personnel, and regulations — edges like `maintained_by`, `governed_by`, and `located_in` are built automatically as documents arrive. |
+| **Catch what's missing** | Compliance and anomaly checks run against the graph automatically — flagging equipment with no spec on file, or readings that exceed a documented limit. |
 
-## License
+## Architecture
 
-MIT — see LICENSE.
+Documents come in through `UploadIngest.tsx`, get processed server-side by Gemini 3.5 Flash against a strict `responseSchema` for structured extraction, and land in the document store as typed entities and relationships. Three views read from that same store: the graph explorer, the copilot (retrieval-grounded, cited), and the gaps dashboard (automatic compliance/anomaly audit).
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Frontend | React + TypeScript, Vite, Tailwind CSS |
+| Backend | Express (Node.js / TypeScript) |
+| AI | Gemini 3.5 Flash (`@google/genai`) — structured extraction, grounded chat, native PDF/image input |
+| Graph visualization | D3.js |
+| Charts | Recharts |
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 18+
+- A Gemini API key ([Google AI Studio](https://aistudio.google.com))
+
+### Installation
+
+```bash
+git clone https://github.com/singhsomnath2006/industrial-knowledge-intelligence.git
+cd industrial-knowledge-intelligence
+npm install
+cp .env.example .env
+```
+
+Add your key to `.env`:
