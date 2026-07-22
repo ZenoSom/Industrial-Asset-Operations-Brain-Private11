@@ -13,12 +13,28 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [documents, setDocuments] = useState<IngestedDocument[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "chat" | "graph" | "dashboard">("chat");
+  const [selectedDoc, setSelectedDoc] = useState<IngestedDocument | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  const handleNavigateToDoc = (titleOrFileName: string) => {
+    const cleanSearch = titleOrFileName.toLowerCase().trim();
+    const matchedDoc = documents.find(
+      d => d.title.toLowerCase().includes(cleanSearch) || 
+           d.fileName.toLowerCase().includes(cleanSearch) ||
+           cleanSearch.includes(d.title.toLowerCase()) ||
+           cleanSearch.includes(d.fileName.toLowerCase())
+    );
+    if (matchedDoc) {
+      setSelectedDoc(matchedDoc);
+    }
+    setActiveTab("upload");
+  };
   const [isGenerating, setIsGenerating] = useState(false);
   const [unresolvedCount, setUnresolvedCount] = useState(0);
   const [currentTime, setCurrentTime] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">(() => {
-    return (localStorage.getItem("theme") as "dark" | "light") || "dark";
+    localStorage.setItem("theme", "light");
+    return "light";
   });
 
   useEffect(() => {
@@ -73,7 +89,13 @@ export default function App() {
   }, []);
 
   const handleIngestSuccess = (newDoc: IngestedDocument) => {
-    setDocuments((prev) => [...prev, newDoc]);
+    setDocuments((prev) => {
+      const exists = prev.some(d => d.id === newDoc.id);
+      if (exists) {
+        return prev.map(d => d.id === newDoc.id ? newDoc : d);
+      }
+      return [...prev, newDoc];
+    });
     fetchAnomaliesCount();
   };
 
@@ -171,28 +193,6 @@ export default function App() {
       {/* GLOWING BLUEPRINT GRID HEADER */}
       <header id="control-room-header" className="relative border-b border-slate-800 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 select-none z-10">
         
-        {/* Pinned Theme Switcher at Left Top of Header */}
-        <div className="absolute left-4 top-4 md:top-1/2 md:-translate-y-1/2 z-20">
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 p-2 rounded-lg flex items-center justify-center transition-all cursor-pointer text-slate-300 gap-1.5 font-bold text-[10px] shadow-md shadow-black/20"
-            title="Toggle Visual Theme Mode"
-            id="theme-toggle-btn"
-          >
-            {theme === "dark" ? (
-              <>
-                <Sun className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
-                <span className="hidden sm:inline">LIGHT MODE</span>
-              </>
-            ) : (
-              <>
-                <Moon className="h-3.5 w-3.5 text-blue-400" />
-                <span className="hidden sm:inline">DARK MODE</span>
-              </>
-            )}
-          </button>
-        </div>
-
         {/* Abstract blueprint schematic background accent */}
         <div className="absolute right-0 top-0 bottom-0 w-1/3 pointer-events-none opacity-[0.02] border-l border-slate-700 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent to-amber-500/20" />
@@ -203,8 +203,8 @@ export default function App() {
           </svg>
         </div>
 
-        {/* Brand Information with padding on left to accommodate the pinned theme button */}
-        <div className="flex items-center space-x-3.5 z-10 pl-14 sm:pl-28 md:pl-32">
+        {/* Brand Information */}
+        <div className="flex items-center space-x-3.5 z-10">
           <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-500 shadow-lg shadow-amber-500/5 shrink-0">
             <Layers className="h-6 w-6" />
           </div>
@@ -223,22 +223,34 @@ export default function App() {
           </div>
         </div>
 
-        {/* Real-time Technical Metrics */}
+        {/* Real-time Technical Metrics & Theme Selector */}
         <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono text-slate-400 z-10">
+          {/* Theme Toggle Button */}
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 px-3 py-1.5 rounded-lg flex items-center justify-center transition-all cursor-pointer text-slate-300 gap-1.5 font-bold text-[10px] shadow-md shadow-black/20"
+            title="Toggle Visual Theme Mode"
+            id="theme-toggle-btn"
+          >
+            {theme === "dark" ? (
+              <>
+                <Sun className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+                <span>LIGHT MODE</span>
+              </>
+            ) : (
+              <>
+                <Moon className="h-3.5 w-3.5 text-blue-400" />
+                <span>DARK MODE</span>
+              </>
+            )}
+          </button>
+
           <div className="bg-slate-900 border border-slate-850 px-3 py-1.5 rounded flex items-center space-x-2">
             <Clock className="h-3.5 w-3.5 text-amber-500" />
             <span>{currentTime || "0000-00-00 00:00:00 UTC"}</span>
           </div>
 
-          <div className="bg-slate-900 border border-slate-850 px-3 py-1.5 rounded flex items-center space-x-2">
-            <Activity className="h-3.5 w-3.5 text-emerald-400" />
-            <span>PORT 3000 • SHIFT A</span>
-          </div>
 
-          <div className="bg-slate-900 border border-slate-850 px-3 py-1.5 rounded flex items-center space-x-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-emerald-400 font-semibold">GEMINI CONNECTED</span>
-          </div>
 
           {/* Operator Authentication Status & Logout */}
           <div className="bg-slate-900 border border-slate-850 px-2.5 py-1 rounded flex items-center space-x-2.5">
@@ -275,7 +287,7 @@ export default function App() {
       <nav id="control-room-nav" className="bg-slate-900/40 border-b border-slate-800/60 px-6 py-2.5 flex items-center justify-between shrink-0 select-none">
         
         {/* Navigation Tabs */}
-        <div className="flex space-x-1">
+        <div className="flex space-x-1 flex-wrap gap-y-1">
           {[
             { id: "chat", label: "Operations Copilot", count: null },
             { id: "upload", label: "Upload & Ingest", count: documents.length },
@@ -307,12 +319,7 @@ export default function App() {
           ))}
         </div>
 
-        {/* Meta Indicators */}
-        <div className="hidden lg:flex items-center space-x-3 text-[10px] font-mono text-slate-500">
-          <span>JAMNAGAR WEST ZONE PETROCHEMICAL</span>
-          <span>•</span>
-          <span>AUDIT SECURE VERSION 1.1</span>
-        </div>
+
 
       </nav>
 
@@ -333,6 +340,7 @@ export default function App() {
               messages={messages}
               onSendMessage={handleSendMessage}
               isGenerating={isGenerating}
+              onNavigateToDoc={handleNavigateToDoc}
             />
           )}
 
@@ -342,6 +350,8 @@ export default function App() {
               onIngestSuccess={handleIngestSuccess}
               onRemoveDoc={handleRemoveDoc}
               onResetDocs={handleResetDocs}
+              selectedDoc={selectedDoc}
+              setSelectedDoc={setSelectedDoc}
             />
           )}
 
@@ -360,42 +370,8 @@ export default function App() {
 
       </main>
 
-      {/* FLOATING GLASS SYSTEM THEME CONTROLLER */}
-      <div className="fixed bottom-20 right-6 z-50 select-none">
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          id="floating-theme-toggle"
-          className="flex items-center space-x-3 px-4 py-3 rounded-full transition-all group scale-100 hover:scale-105"
-          title="Toggle Visual Theme (Light/Dark)"
-        >
-          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-500 text-slate-950 shadow-lg group-hover:rotate-45 transition-transform duration-500">
-            {theme === "dark" ? (
-              <Sun className="h-4.5 w-4.5 animate-spin-slow" />
-            ) : (
-              <Moon className="h-4.5 w-4.5 text-slate-950" />
-            )}
-          </div>
-          <div className="text-left flex flex-col justify-center pr-1.5">
-            <span className="text-[10px] font-bold font-mono tracking-wider uppercase leading-none block text-slate-100 dark:text-slate-100">
-              {theme === "dark" ? "ACTIVE: DARK MODE" : "ACTIVE: LIGHT MODE"}
-            </span>
-            <span className="text-[8px] font-mono leading-none mt-1 text-amber-500 block">
-              [ CLICK TO SWITCH THEME ]
-            </span>
-          </div>
-        </button>
-      </div>
-
       {/* COMPLIANT OPERATIONS FOOTER */}
       <footer id="control-room-footer" className="border-t border-slate-900 bg-slate-950 px-6 py-3 flex items-center justify-between text-[10px] font-mono text-slate-500 shrink-0 select-none">
-        <div>
-          JAMNAGAR SECTOR REFINERY INTEL UNIT B • CORE CONTROLS REGISTERED
-        </div>
-        <div className="flex items-center space-x-4">
-          <span className="flex items-center"><Cpu className="h-3 w-3 mr-1 text-amber-500" /> GEMINI EMULATION AGENT OK</span>
-          <span>•</span>
-          <span>FACTORY ACT 36-B COMPLIANCE COMPLIANT</span>
-        </div>
       </footer>
 
     </div>

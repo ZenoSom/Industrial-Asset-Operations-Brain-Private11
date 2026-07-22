@@ -8,18 +8,21 @@ interface UploadIngestProps {
   onIngestSuccess: (doc: IngestedDocument) => void;
   onRemoveDoc: (id: string) => void;
   onResetDocs: () => void;
+  selectedDoc: IngestedDocument | null;
+  setSelectedDoc: (doc: IngestedDocument | null) => void;
 }
 
 export default function UploadIngest({
   documents,
   onIngestSuccess,
   onRemoveDoc,
-  onResetDocs
+  onResetDocs,
+  selectedDoc,
+  setSelectedDoc
 }: UploadIngestProps) {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pipelineLogs, setPipelineLogs] = useState<string[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<IngestedDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Custom simulation files for easy one-click demo ingestion
@@ -105,22 +108,39 @@ AUTHORIZATION: Verified by PESO Chief Inspector G. R. Iyer`
     });
   };
 
-  const processIngestion = async (title: string, fileName: string, content: string, category?: string) => {
+  const processIngestion = async (
+    title: string,
+    fileName: string,
+    content: string,
+    category?: string,
+    isBase64: boolean = false,
+    mimeType?: string,
+    fileSizeStr?: string
+  ) => {
     setUploading(true);
     setPipelineLogs([]);
     setSelectedDoc(null);
 
     await addLog(`[LOG] ⚡ Ingestion request received for "${fileName}"`, 100);
-    await addLog(`[LOG] ⚙️ Scanning file byte streams (${(content.length / 1024).toFixed(1)} KB)...`, 300);
+    const sizeDisplay = fileSizeStr || `${(content.length / 1024).toFixed(1)} KB`;
+    await addLog(`[LOG] ⚙️ Scanning file byte streams (${sizeDisplay})...`, 300);
     await addLog(`[LOG] 🧠 Contacting server operations brain pipeline...`, 400);
     await addLog(`[GEMINI] ⚡ Initializing Gemini 3.5 Flash Model for deep entity parsing...`, 600);
     await addLog(`[GEMINI] 🔍 Extracting tag references, personnel, and compliance coordinates...`, 800);
 
     try {
+      const payload: any = { title, fileName, category };
+      if (isBase64) {
+        payload.base64 = content;
+        payload.mimeType = mimeType;
+      } else {
+        payload.content = content;
+      }
+
       const res = await fetch("/api/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, fileName, content, category })
+        body: JSON.stringify(payload)
       });
 
       if (!res.ok) throw new Error("Ingestion server failure");
@@ -134,27 +154,9 @@ AUTHORIZATION: Verified by PESO Chief Inspector G. R. Iyer`
 
       onIngestSuccess(doc);
       setSelectedDoc(doc);
-    } catch (err) {
-      await addLog(`[ERROR] ❌ Server API connection failed. Reverting to high-fidelity regex extraction...`, 400);
-      // Try local fallback as a safety measure if API went fully down
-      const fallbackDoc: IngestedDocument = {
-        id: `doc-fallback-${Date.now()}`,
-        title: title || fileName.replace(/\.[^/.]+$/, ""),
-        category: (category as any) || "other",
-        fileName,
-        content,
-        uploadDate: new Date().toISOString().split('T')[0],
-        fileSize: `${(content.length / 1024).toFixed(1)} KB`,
-        extractedEntities: {
-          tags: fileName.includes("COMP-302") ? ["COMP-302"] : [],
-          dates: [new Date().toISOString().split('T')[0]],
-          personnel: ["Rajesh Nair"],
-          standards: fileName.includes("SOP") ? ["SOP-SFT-008"] : [],
-          parameters: ["42.0 bar", "115°C"]
-        }
-      };
-      onIngestSuccess(fallbackDoc);
-      setSelectedDoc(fallbackDoc);
+    } catch (err: any) {
+      await addLog(`[ERROR] ❌ Ingestion process failed: ${err instanceof Error ? err.message : String(err)}`, 400);
+      await addLog(`[ERROR] Please verify that a valid GEMINI_API_KEY is configured in your settings and the server is running. Fake fallbacks have been disabled.`, 600);
     } finally {
       setUploading(false);
     }
@@ -168,11 +170,21 @@ AUTHORIZATION: Verified by PESO Chief Inspector G. R. Iyer`
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       const reader = new FileReader();
+      const fileSizeStr = `${(file.size / 1024).toFixed(1)} KB`;
       reader.onload = async (event) => {
-        const text = event.target?.result as string;
-        await processIngestion(file.name.replace(/\.[^/.]+$/, ""), file.name, text);
+        const dataUrl = event.target?.result as string;
+        const base64 = dataUrl.split(",")[1];
+        await processIngestion(
+          file.name.replace(/\.[^/.]+$/, ""),
+          file.name,
+          base64,
+          undefined,
+          true,
+          file.type,
+          fileSizeStr
+        );
       };
-      reader.readAsText(file);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -180,11 +192,21 @@ AUTHORIZATION: Verified by PESO Chief Inspector G. R. Iyer`
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       const reader = new FileReader();
+      const fileSizeStr = `${(file.size / 1024).toFixed(1)} KB`;
       reader.onload = async (event) => {
-        const text = event.target?.result as string;
-        await processIngestion(file.name.replace(/\.[^/.]+$/, ""), file.name, text);
+        const dataUrl = event.target?.result as string;
+        const base64 = dataUrl.split(",")[1];
+        await processIngestion(
+          file.name.replace(/\.[^/.]+$/, ""),
+          file.name,
+          base64,
+          undefined,
+          true,
+          file.type,
+          fileSizeStr
+        );
       };
-      reader.readAsText(file);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -225,7 +247,7 @@ AUTHORIZATION: Verified by PESO Chief Inspector G. R. Iyer`
             ref={fileInputRef} 
             onChange={handleFileSelect} 
             className="hidden" 
-            accept=".txt,.csv,.json,.xml"
+            accept=".txt,.csv,.json,.xml,.pdf,.xlsx,.xls"
           />
           <div className="flex flex-col items-center justify-center space-y-3">
             <div className="p-4 bg-slate-800 rounded-full text-amber-500">
@@ -236,7 +258,7 @@ AUTHORIZATION: Verified by PESO Chief Inspector G. R. Iyer`
                 Drag & drop plant document here
               </p>
               <p className="font-sans text-xs text-slate-400 mt-1">
-                Supports TXT, CSV, JSON operating manuals, logs, specs, and permits
+                Supports PDF, XLSX, TXT, CSV, JSON operating manuals, logs, specs, and permits
               </p>
             </div>
             <button 

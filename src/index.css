@@ -283,3 +283,48 @@
 .light-theme ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
 }
+
+/* PRINT MEDIA RULES FOR OFFICIAL REPORT PRINTING */
+@media print {
+  /* Hide all app elements except the print report container */
+  body > * {
+    visibility: hidden !important;
+  }
+  #official-copilot-print-report,
+  #official-copilot-print-report * {
+    visibility: visible !important;
+  }
+  #official-copilot-print-report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    display: block !important;
+    z-index: 999999 !important;
+  }
+  
+  /* Reset background colors and text colors for paper printing */
+  #official-copilot-print-report .print-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+  
+  #official-copilot-print-report .print-text-dark {
+    color: #0f172a !important;
+  }
+
+  #official-copilot-print-report .print-text-muted {
+    color: #475569 !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+}

@@ -38,6 +38,7 @@ export interface GraphNode {
   label: string;
   type: "document" | "equipment" | "personnel" | "regulatory";
   subtitle: string;
+  properties?: Record<string, string>;
 }
 
 export interface GraphLink {
