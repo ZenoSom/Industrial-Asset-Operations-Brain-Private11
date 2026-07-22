@@ -5,7 +5,7 @@
 
 Plants generate thousands of scattered documents — equipment specs, permits, maintenance logs, inspection reports — spread across 7–12 disconnected systems in a typical large facility. When something breaks or a technician needs an answer, someone digs through all of it by hand. This project turns that pile of documents into one connected, queryable knowledge graph with a cited AI copilot, so the answer takes seconds instead of an afternoon.
 
-Team **singhsomnath2006** — Somnath Singh (Team Lead) · Meet Tomar
+Team **singhsomnath2006** — Somnath Singh · Meet Tomar
 
 ---
 
